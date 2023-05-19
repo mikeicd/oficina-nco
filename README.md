@@ -10,6 +10,9 @@ Para o desenvolvimento da oficina será utilizado:
 
 ## Geração dos sinais senoidais
 
+Nesta seção, dois sinais senoidais serão criados, um de 1 MHz e outro de 4 MHz, para isso siga os seguintes passos:
+
+- Em `IP Catalog` pesquise por `nco`
 ## Configurando o SignalTap para visualização dos sinais gerados
 
 ## Somando os dois sinais
