@@ -12,13 +12,6 @@
 - [Fazendo uma subamostragem dos sinais](#fazendo-uma-subamostragem-dos-sinais)
 
 ## Introdução
-
-$a^2 + b^2 = c^2_{m}$
-
-$$
-x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}
-$$
-
 Este repositório tem como objetivo atualizar a oficina [Oficina NCO e Filtros digitais](https://wiki.sj.ifsc.edu.br/index.php/Oficina_NCO_e_Filtros_digitais), que traz um roteiro para a geração de sinais senoidais e a construção de filtros digitais em FPGAs Altera, utilizando o Quartus II. 
 
 O sistema desenvolvido possui a capacidade de gerar sinais senoidais de 1 MHz e 4 MHz, somar os dois sinais e realizar uma filtragem passa baixas para manter apenas o sinal de 1 MHz. Também será realizado a construção de um divisor de *clock* para realizar uma subamostragem nos sinais. Os blocos do sistema utilizam o *MegaWizard Plug-In Manager*.
@@ -40,6 +33,8 @@ O sistema desenvolvido possui a capacidade de gerar sinais senoidais de 1 MHz e 
 
 ## Iniciar projeto
 
+Antes de seguir os passos, certifique-se de ter criado um novo projeto no `Quartus II` do zero.
+
 ## Geração dos sinais senoidais
 
 Nesta seção, dois sinais senoidais serão criados, um de 1 MHz e outro de 4 MHz, para isso siga os seguintes passos:
@@ -58,34 +53,46 @@ Installed IP
 </p>
 
 2. Na janela *`New IP Variation`*, seção *`Create IP Variation`*, defina o nome da entidade (*`Entity name`*) e escolha o local para salvar os arquivos (sugestão: `nco1MHz` e `nco4MHz`).
-> __Obs__: Na seção *`Target Device`* certifique-se de que a *`Family`*  é `Cyclone IV E` e *`device`* igual a  `EP4CE115F29C7`
+
+<p align="center">
+  <img src="images/janela1-nco.png" alt="Descrição da imagem" width="50%">
+</p>
+
+> __Obs__: Na seção *`Target Device`* certifique-se que *`Family`* esteja definida como `Cyclone IV E` e *`device`* igual a `EP4CE115F29C7`.
+
+3. Na janela *`IP Parameter Editor`* :
+
+   - Defina os seguintes parâmetros de *`Architecture`*:
+
+     - `Genersation Algorithm:` Multiplier-based
+     - `Outputs:` Dual Output
+     - `Number of Channels:` 1
+     - `Number of Bands:` 1
+  
+   - Defina os seguintes parâmetros de *`Frequency`*:
+     - `Phase Accumulator Precision:` 32 bits
+     - `Angular Resolution:` 16 bits
+     - `Magnitude Resolution:` 10 bits 
+     - `Escala de Dither Level:` 4
+     - `Clock Rate:` 50 MHz
+     - `Desired Increment Value:` 1.0 MHz
+     - Em `Phase Increment Value`, anote o valor disponibilizado (Para 1MHz, 85899346) 
+     - Esse número pode ser encontrado também através da equação:
+
+     $$PIV = \left (\frac{DOF}{CR}\right) * PAP$$
+
+      - Após finalizar as configurações, clique em `Generate VHDL`.
+      - Ao finalizar o processo de geração do código VHDL, clique em finish.
+      - Note que ao retornar para janela padrão do Quartus II, foi adicionado um novo arquivo ao projeto com nome de nco1MHz.qip
+
+    <p align="center">
+      <img src="images/config-nco.png" alt="Descrição da imagem" width="55%">
+    </p>
+   
+> O mesmo procedimento deve ser feito para o NCO de 4 MHz, ao finalizar de criar o nco4MHz terá o seguinte `Phase Increment Value:343597384`.
 
 
-3. Após na janela *`IP Parameter Editor`*, seção *`Base Parameters`* deve ser definido os seguintes parâmetros da arquitetura:
-
-    - `Genersation Algorithm:` Multiplier-based
-    - ``
-- Na janela do NCO, clique em 'Step1: Parameterize'
-- Em 'Magnitude Precision', escolha o número de bits por amostra desejado para o sinal senoidal (sugestão: '10')
-- Em 'Clock Rate', escolha o clock da placa (no caso, 50 MHz). Digite o valor e tecle ENTER
-- Em 'Desired Output Frequency', escolha a frequência desejada para o sinal senoidal (1 MHz). Digite o valor e tecle ENTER
-- Anote o valor disponibilizado em 'Phase Increment Value' (Para 1MHz, 85899346). Você pode dar dois cliques no valor e usar o CTRL+C para copiar. Esse número pode ser encontrado também através da equação:
-
-PIV = (DOF / CR) * PAP
-
-onde as siglas se referem às iniciais dos parâmetros
-
-
-- No canto superior direito da aba 'Implementation', marque a opção 'Single Output'
-- Clique em 'Finish' para encerrar a parametrização
-- Clique em 'Generate' para gerar o bloco
-- Quando o processamento encerrar, clique em 'Exit' e selecione 'Yes' quando questionado sobre adicionar o arquivo gerado ao projeto
-- De volta à janela padrão do 'Quartus II' repare que o arquivo 'nco1MHz.qip' foi adicionado ao projeto
-
-
-O mesmo procedimento deve ser feito para o NCO de 4 MHz ('Phase Increment Value' 343597384)
-
-Com os dois NCOs criados, adicione-o ao projeto. Repare que ele possui entradas de clock, um reset ativo baixo (repare no "_n" no nome da entrada), um enable e uma entrada de 32 bits chamada 'phi_inc_i[31..0]'. É através dessa entrada que o NCO é controlado, e a constante 'Phase Increment Value' deve ser passada. Para isso, use um outro MegaWizard, o 'LPM_CONSTANT'. Ao fazer sua configuração, use o nome 'const1MHz' e 'const4MHz'. Sua parametrização é simples, com o número de bits da constante (32, para estar de acordo com o esperado pelo NCO), e o seu valor em decimal (85899346 e 343597384). Na página 'Summary', marque todos os tipos de arquivo disponíveis.
+- Com os dois NCOs criados, adicione-o ao projeto. Repare que ele possui entradas de clock, um reset ativo baixo (repare no "_n" no nome da entrada), um enable e uma entrada de 32 bits chamada 'phi_inc_i[31..0]'. É através dessa entrada que o NCO é controlado, e a constante 'Phase Increment Value' deve ser passada. Para isso, use um outro MegaWizard, o 'LPM_CONSTANT'. Ao fazer sua configuração, use o nome 'const1MHz' e 'const4MHz'. Sua parametrização é simples, com o número de bits da constante (32, para estar de acordo com o esperado pelo NCO), e o seu valor em decimal (85899346 e 343597384). Na página 'Summary', marque todos os tipos de arquivo disponíveis.
 
 Adicione os componentes ao projeto e realize as ligações como abaixo:
 
@@ -94,14 +101,6 @@ Compile o projeto, e no '
 
 
 
-
-
-
-## Geração dos sinais senoidais
-
-Nesta seção, dois sinais senoidais serão criados, um de 1 MHz e outro de 4 MHz, para isso siga os seguintes passos:
-
-- Em `IP Catalog` pesquise por `nco`
 ## Configurando o SignalTap para visualização dos sinais gerados
 
 ## Somando os dois sinais
