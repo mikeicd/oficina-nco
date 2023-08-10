@@ -1,15 +1,18 @@
 # Oficina-NCO  <!-- omit in toc -->
 
 **Sumário**
+
 - [Introdução](#introdução)
   - [Para o desenvolvimento será utilizado:](#para-o-desenvolvimento-será-utilizado)
 - [Iniciar projeto](#iniciar-projeto)
 - [Geração dos sinais senoidais](#geração-dos-sinais-senoidais)
-- [Geração dos sinais senoidais](#geração-dos-sinais-senoidais-1)
+- [Criação do LPM\_CONSTANT](#criação-do-lpm_constant)
 - [Configurando o SignalTap para visualização dos sinais gerados](#configurando-o-signaltap-para-visualização-dos-sinais-gerados)
 - [Somando os dois sinais](#somando-os-dois-sinais)
 - [Criando o filtro no MATLAB](#criando-o-filtro-no-matlab)
-- [Fazendo uma subamostragem dos sinais](#fazendo-uma-subamostragem-dos-sinais)
+  - [Importando o filtro no Quartus II](#importando-o-filtro-no-quartus-ii)
+- [Tratando o sinal](#tratando-o-sinal)
+
 
 ## Introdução
 Este repositório tem como objetivo atualizar a oficina [Oficina NCO e Filtros digitais](https://wiki.sj.ifsc.edu.br/index.php/Oficina_NCO_e_Filtros_digitais), que traz um roteiro para a geração de sinais senoidais e a construção de filtros digitais em FPGAs Altera, utilizando o Quartus II. 
@@ -87,9 +90,11 @@ Installed IP
       - Ao finalizar o processo de geração do código `VHDL`, clique em finish.
       - Note que ao retornar para janela padrão do Quartus II, não foi adicionado um novo arquivo ao projeto com nome de `nco1MHz.qip`.
       - Ao retornar para janela padrão do Quartus II verifique se `nco1MHz.qip` está em files. Caso não esteja, adicione ao projeto. 
-    <p align="center">
-      <img src="images/config-nco.png" alt="Descrição da imagem" width="55%">
-    </p>
+
+
+<p align="center">
+  <img src="images/config-nco.png" alt="Descrição da imagem" width="55%">
+</p>
    
 > O mesmo procedimento deve ser realizado para o NCO de 4 MHz, ao criar o nco4MHz terá o seguinte `Phase Increment Value:343597384`.
 
@@ -121,11 +126,12 @@ Nesta seção, dois LPM_CONSTANT devem ser criados, sendo um para o NCO de 1 MHz
 5. Adicione os componentes ao projeto e realize as ligações como abaixo:
 
 <p align="center">
-  <img src="images/ligacao-nco-const.png" alt="Descrição da imagem" width="60%">
+  <img src="images/ligacao-nco-const.png" alt="Descrição da imagem" width="80%">
 </p>
 
+> Repare que a etrada `phi_inc[31..0]` controla o incremento do `NCO` para a geração do sinal senoidal, e a constante `Phase Increment Value` deve ser passada. 
 
-6. Compile o projeto, e no **Pin Planner** (menu Assignments), configure apenas a porta **clk50MHz**, no Location **PIN_Y2**
+1. Compile o projeto, e no **Pin Planner** (menu Assignments), configure apenas a porta **clk50MHz**, no Location **PIN_Y2**
 
 ## Configurando o SignalTap para visualização dos sinais gerados
 
@@ -139,7 +145,7 @@ Nesta seção, dois LPM_CONSTANT devem ser criados, sendo um para o NCO de 1 MHz
 2. Na aba `Setup` (primeiro passo da imagem abaixo), dê um duplo-clique na área em branco.
 
 <p align="center">
-  <img src="images/signaltapGeral.png" alt="Descrição da imagem" width="60%">
+  <img src="images/signaltapGeral.png" alt="Descrição da imagem" width="90%">
 </p>
 
 3. Na janela `Node Finder` selecione os sinais conforme abaixo: 
@@ -180,7 +186,7 @@ Nesta seção, dois LPM_CONSTANT devem ser criados, sendo um para o NCO de 1 MHz
 
 
 <p align="center">
-  <img src="images/sinais-obtidos.png" alt="Descrição da imagem" width="80%">
+  <img src="images/sinais-obtidos.png" alt="Descrição da imagem" width="90%">
 </p>
 
 ## Somando os dois sinais
@@ -215,33 +221,79 @@ Os sinais senoidais usam bit de sinal obtido via complemento de dois. Para somar
 6. Após isso, compile o projeto e adicione a porta `soma` ao `SignalTap II`. Compile novamente, faça a programação, e inicie a captura de sinais no SignalTap II. Configure a exibição do sinal de `soma` da mesma forma que os sinais senoidais.
 
 <p align="center">
-  <img src="images/lpm-soma-signal-tap.png" alt="Descrição da imagem" width="70%">
+  <img src="images/lpm-soma-signal-tap.png" alt="Descrição da imagem" width="90%">
 </p>
 
 ## Criando o filtro no MATLAB
 
+1. Abra o Matlab e digite fdatool na barra de comandos para abrir a ferramenta de criação de filtros.
+
+2. Na seção `Design method` selecione FIR e defina o tipo do filtro como `Window`.
+3. Em `Options` mude o tipo de janelamento em `Window` para `Kaiser`.
+4. Mude em `frequency Specification`:
+   - `FS` : 50000000
+   - `Fpass` : 1200000
+   - `Fstop` : 2000000
+
+5. Clique em `Design Filter`.
+   
 <p align="center">
   <img src="images/fir-design-filter.png" alt="Descrição da imagem" width="70%">
 </p>
 
-<p align="center">
-  <img src="images/fir-kaiser.png" alt="Descrição da imagem" width="70%">
-</p>
+6. Vá em `File>Export` no canto superior esquerdo.
+7. Na seção `Export To` selecione `Coefficient File (ASCII)`.
+8. Clique em `Export` para criar o arquivo que contém os coefientes do filtro.
 
 <p align="center">
   <img src="images/fir-coeficiente.png" alt="Descrição da imagem" width="70%">
 </p>
 
+9. Utilize o código em python [processa_filtro](processa_filtro.py) para adequar os coeficientes para serem utilizados no `Quartus II`.
+### Importando o filtro no Quartus II
+
+1. Na janela `Tools > Ip Catalog` crie um novo componente `FIR II`.
+2. Na aba `Coefficients` clique em `Import From File` e selecione o arquivo criado anteriormente pelo código [processa_filtro](processa_filtro.py). 
+
+<p align="center">
+  <img src="images/import_filtro.png" alt="Descrição da imagem" width="90%">
+</p>
+
+3. Após importar o filtro vá na aba `Input/Output Options`, em `Input Width` altere para 11 bits.
+4. Clique em `Finish` para gerar o componente do filtro.
+
+
+<p align="center">
+  <img src="images/Config_filtro_quartus.png" alt="Descrição da imagem" width="90%">
+</p>
+
+5. Adicione o filtro no projeto e faça as ligações necessárias como na imagem abaixo.
+
 <p align="center">
   <img src="images/filtro-pb-block.png" alt="Descrição da imagem" width="70%">
 </p>
 
+6. Após isso, compile o projeto e adicione a porta `filtro` ao `SignalTap II`. Compile novamente, faça a programação, e inicie a captura de sinais no `SignalTap II`.
 
-## Fazendo uma subamostragem dos sinais
+<p align="center">
+  <img src="images/SinalFiltrado_sem_deletar.png" alt="Descrição da imagem" width="90%">
+</p>  
 
+> Note que a representação do sinal possui bits repetidos (27-20)
 
+## Tratando o sinal
 
+1. Para possibilitar a análise do sinal filtrado, deve-se remover os bits repetidos, assim entre na aba `Setup` (canto inferior esquerdo do `Signal Tap II`).
+2. Certifique-se que a captura foi encerrada e clique em `+` em `filtro[27..0]` e desmarque de `filtro[27]` até `filtro[21]` como na imagem abaixo.
+<p align="center">
+  <img src="images/Config_SignalTap.png" alt="Descrição da imagem" width="90%">
+</p>
 
-- Com os dois NCOs criados, adicione-o ao projeto. Repare que ele possui entradas de clock, um reset ativo baixo (repare no "_n" no nome da entrada), um enable e uma entrada de 32 bits chamada 'phi_inc_i[31..0]'. É através dessa entrada que o NCO é controlado, e a constante 'Phase Increment Value' deve ser passada. 
-  
-- Para isso, use um outro MegaWizard, o 'LPM_CONSTANT'. Ao fazer sua configuração, use o nome 'const1MHz' e 'const4MHz'. Sua parametrização é simples, com o número de bits da constante (32, para estar de acordo com o esperado pelo NCO), e o seu valor em decimal (85899346 e 343597384). Na página 'Summary', marque todos os tipos de arquivo disponíveis.
+3. Compile novamente o projeto e inicie a captura de dados clicando no botão `Autorun Analysis`.
+
+<p align="center">
+  <img src="images/sinalFiltrado.png" alt="Descrição da imagem" width="90%">
+</p>
+
+> O descarte de bits realizado afetou apenas a visualização no `SignalTap II`. Para alterar efetivamento o sinal de saída do filtro, a interface de truncamento na configuração do `FIR II` pode ser usada, ou pode ser feita uma derivação dos sinais desejados na saída do filtro. 
+
