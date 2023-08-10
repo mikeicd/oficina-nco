@@ -1,23 +1,10 @@
-import tkinter as tk
-from tkinter import filedialog
+import argparse
 
-
-def ler_arquivo():
-    """Abrir janela de seleção de arquivo
-    """
-    arquivo = filedialog.askopenfilename(
-        filetypes=[("Arquivos de Texto", ["*.txt", "*.fcf"])])
-    entry_arquivo_entrada.delete(0, tk.END)
-    entry_arquivo_entrada.insert(tk.END, arquivo)
-
-
-def copiar_numeros():
+def copiar_numeros(origem, destino):
     """Encontra os números e copia para o novo arquivo
     """
-    arquivo_origem = entry_arquivo_entrada.get()
-    arquivo_destino = entry_arquivo_saida.get()
 
-    with open(arquivo_origem, 'r') as arquivo_entrada:
+    with open(origem, 'r') as arquivo_entrada:
         # Ler arquivo por linhas
         conteudo = arquivo_entrada.readlines()
         encontrou_numarator = False
@@ -34,47 +21,18 @@ def copiar_numeros():
 
         numeros_formatados = ','.join(numeros)
 
-        with open(arquivo_destino, 'w') as arquivo_saida:
+        with open(destino, 'w') as arquivo_saida:
             arquivo_saida.write(numeros_formatados)
+        
+        print('Processo concluido com sucesso!')
 
-    janela.quit()
-    janela.destroy()
 
-
-# Criação da janela principal
-janela = tk.Tk()
-janela.title("Copiar Números")
-janela.geometry("400x200")
-
-# Variáveis para armazenar os nomes dos arquivos
-arquivo_entrada = tk.StringVar()
-arquivo_saida = tk.StringVar()
-
-# Label e campo de entrada para o arquivo de entrada
-lbl_arquivo_entrada = tk.Label(janela, text="Arquivo de Entrada:")
-lbl_arquivo_entrada.pack()
-
-# Variável que guarda os dados do arquivo de entrada
-entry_arquivo_entrada = tk.Entry(janela, textvariable=arquivo_entrada)
-entry_arquivo_entrada.pack()
-
-# Botão para selecionar o arquivo de entrada
-btn_selecionar_arquivo = tk.Button(
-    janela, text="Selecionar Arquivo", command=ler_arquivo)
-btn_selecionar_arquivo.pack()
-
-# Label e campo de entrada para o arquivo de saída
-lbl_arquivo_saida = tk.Label(janela, text="Novo Arquivo:")
-lbl_arquivo_saida.pack()
-
-# Variável que guarda os dados do arquivo de saida
-entry_arquivo_saida = tk.Entry(janela, textvariable=arquivo_saida)
-entry_arquivo_saida.pack()
-
-# Botão para copiar os números
-btn_copiar_numeros = tk.Button(
-    janela, text="Copiar Números", command=copiar_numeros)
-btn_copiar_numeros.pack()
-
-# Executar a interface gráfica
-janela.mainloop()
+if __name__ == '__main__':        
+    parser = argparse.ArgumentParser(description='Processa filtro', formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument('origem', type=str, help='Arquivo fcf gerado pelo MatLab')
+    parser.add_argument('destino', type=str, help='Arquivo de destino dos parâmetros do filtro')
+    args = parser.parse_args()
+    
+    if args.origem and args.destino:
+        copiar_numeros(args.origem, args.destino)
+    
